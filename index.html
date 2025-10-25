@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4298046800522617"
+     crossorigin="anonymous"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i want to edit - Tools Website</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- PDF Processing Libraries -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- QR Code and PDF Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>i want to edit</h1>
+        <p>The ultimate resource for tools with advanced features</p>
+        <div style="margin-top: 20px;">
+            <a href="#" onclick="openPrivacyPolicy()" class="privacy-mobile-button">
+                <i class="fas fa-shield-alt mobile-icon"></i>
+                <span class="privacy-text">Privacy Policy Learn about our privacy and security measures</span>
+            </a>
+        </div>
+    </header>
+    <main>
+        <div class="tools-grid">
+            <div class="tool-card" id="qr-generator">
+                <i class="fas fa-qrcode"></i>
+                <h2>QR Code Generator</h2>
+                <p>Generate QR codes instantly</p>
+            </div>
+            <div class="tool-card" id="pdf-editor">
+                <i class="fas fa-file-pdf"></i>
+                <h2>PDF Editor</h2>
+                <p>Edit and view PDF files</p>
+            </div>
+            <div class="tool-card" id="pdf-maker">
+                <i class="fas fa-plus-circle"></i>
+                <h2>PDF Maker</h2>
+                <p>Create PDF from scratch</p>
+            </div>
+            <div class="tool-card" id="text-editor">
+                <i class="fas fa-edit"></i>
+                <h2>Text Counter</h2>
+                <p>A tool to count words and characters in text</p>
+            </div>
+            <div class="tool-card" id="calculator">
+                <i class="fas fa-calculator"></i>
+                <h2>Calculator</h2>
+                <p>Basic calculator functions</p>
+            </div>
+        </div>
+    </main>
+    <div id="tool-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
