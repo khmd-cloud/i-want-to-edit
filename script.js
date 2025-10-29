@@ -464,7 +464,7 @@ function downloadFile(dataUrl, fileName) {
     link.download = fileName;
     link.style.display = 'none';
     
-    // For mobile devices, we'll use a different approach
+    // For mobile devices
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
         // Create a temporary container for the link
         const container = document.createElement('div');
@@ -472,7 +472,6 @@ function downloadFile(dataUrl, fileName) {
         container.appendChild(link);
         document.body.appendChild(container);
         
-        // Programmatically trigger the download
         try {
             // Try to trigger the download directly
             const event = new MouseEvent('click', {
@@ -484,15 +483,13 @@ function downloadFile(dataUrl, fileName) {
             // Dispatch the event
             link.dispatchEvent(event);
             
-            // If we get here, the download might have been blocked
-            // Show a message to the user with instructions
+            // Show a message if the download doesn't start
             setTimeout(() => {
                 if (!document.body.contains(link)) {
                     // Link was removed, download might have started
                     return;
                 }
                 
-                // If we're still here, the download was likely blocked
                 // Show a message with instructions
                 const message = document.createElement('div');
                 message.style.position = 'fixed';
@@ -527,7 +524,7 @@ function downloadFile(dataUrl, fileName) {
                 if (document.body.contains(container)) {
                     document.body.removeChild(container);
                 }
-            }, 1000);
+            }, 500);
             
             return;
         } catch (e) {
@@ -647,36 +644,36 @@ function downloadQRAsPDF() {
         return;
     }
 
+    // Show loading indicator
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.style.position = 'fixed';
+    loadingIndicator.style.top = '0';
+    loadingIndicator.style.left = '0';
+    loadingIndicator.style.width = '100%';
+    loadingIndicator.style.height = '100%';
+    loadingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    loadingIndicator.style.display = 'flex';
+    loadingIndicator.style.justifyContent = 'center';
+    loadingIndicator.style.alignItems = 'center';
+    loadingIndicator.style.zIndex = '9999';
+    loadingIndicator.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
+            <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 15px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="margin: 0; font-weight: bold;">Generating PDF...</p>
+            <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Please wait a moment</p>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    document.body.appendChild(loadingIndicator);
+    
+    // Use setTimeout to ensure the UI updates before heavy processing
+    setTimeout(() => {
     try {
-        // Show loading indicator
-        const loadingIndicator = document.createElement('div');
-        loadingIndicator.style.position = 'fixed';
-        loadingIndicator.style.top = '0';
-        loadingIndicator.style.left = '0';
-        loadingIndicator.style.width = '100%';
-        loadingIndicator.style.height = '100%';
-        loadingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        loadingIndicator.style.display = 'flex';
-        loadingIndicator.style.justifyContent = 'center';
-        loadingIndicator.style.alignItems = 'center';
-        loadingIndicator.style.zIndex = '9999';
-        loadingIndicator.innerHTML = `
-            <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
-                <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 15px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <p style="margin: 0; font-weight: bold;">Generating PDF...</p>
-                <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Please wait a moment</p>
-            </div>
-            <style>
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            </style>
-        `;
-        document.body.appendChild(loadingIndicator);
-        
-        // Use setTimeout to ensure the UI updates before heavy processing
-        setTimeout(() => {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
         const size = parseInt(document.getElementById('qr-size').value);
@@ -733,7 +730,6 @@ function downloadQRAsPDF() {
         setTimeout(() => {
             URL.revokeObjectURL(pdfUrl);
         }, 1000);
-        
     } catch (error) {
         console.error('Error generating PDF:', error);
         
@@ -745,10 +741,7 @@ function downloadQRAsPDF() {
         // Show error message
         alert('Error generating PDF. Please try again.');
     }
-    } catch (error) {
-        console.error('Error generating PDF:', error);
-        alert('Error generating PDF. Please try again.');
-    }
+    }, 100);
 }
 
 // Initialize size slider functionality
