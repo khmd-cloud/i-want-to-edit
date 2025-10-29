@@ -458,90 +458,43 @@ function generateQRCode() {
 
 // Helper function to handle file download for both mobile and desktop
 function downloadFile(dataUrl, fileName) {
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = fileName;
-    link.style.display = 'none';
-    
     // For mobile devices
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // Create a temporary container for the link
-        const container = document.createElement('div');
-        container.style.display = 'none';
-        container.appendChild(link);
-        document.body.appendChild(container);
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.target = '_blank';
         
-        try {
-            // Try to trigger the download directly
-            const event = new MouseEvent('click', {
-                view: window,
-                bubbles: true,
-                cancelable: true
-            });
+        // For iOS devices, we need to open the image in a new tab
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+            // Create a new window with the image
+            const newWindow = window.open();
+            newWindow.document.write(`<img src="${dataUrl}" alt="QR Code" style="max-width:100%;">`);
+            newWindow.document.title = 'QR Code';
+            newWindow.document.close();
             
-            // Dispatch the event
-            link.dispatchEvent(event);
-            
-            // Show a message if the download doesn't start
-            setTimeout(() => {
-                if (!document.body.contains(link)) {
-                    // Link was removed, download might have started
-                    return;
-                }
-                
-                // Show a message with instructions
-                const message = document.createElement('div');
-                message.style.position = 'fixed';
-                message.style.bottom = '20px';
-                message.style.left = '10px';
-                message.style.right = '10px';
-                message.style.backgroundColor = '#ffeb3b';
-                message.style.color = '#000';
-                message.style.padding = '15px';
-                message.style.borderRadius = '5px';
-                message.style.zIndex = '10000';
-                message.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-                message.style.textAlign = 'center';
-                message.innerHTML = `
-                    <p style="margin: 0 0 10px 0; font-weight: bold;">Download didn't start automatically</p>
-                    <p style="margin: 0 0 10px 0;">Tap and hold the button below, then select "Download" or "Save"</p>
-                    <a href="${dataUrl}" download="${fileName}" style="display: inline-block; background: #007AFF; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-                        Download ${fileName.split('.').pop().toUpperCase()}
-                    </a>
-                `;
-                
-                document.body.appendChild(message);
-                
-                // Remove the message after 10 seconds
-                setTimeout(() => {
-                    if (document.body.contains(message)) {
-                        document.body.removeChild(message);
-                    }
-                }, 10000);
-                
-                // Remove the temporary container
-                if (document.body.contains(container)) {
-                    document.body.removeChild(container);
-                }
-            }, 500);
-            
-            return;
-        } catch (e) {
-            console.error('Error triggering download:', e);
+            // Show save button for iOS
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save Image';
+            saveBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;background:#007AFF;color:white;border:none;border-radius:5px;font-size:16px;';
+            saveBtn.onclick = function() {
+                // This will prompt the user to save the image
+                window.open(dataUrl, '_blank');
+            };
+            newWindow.document.body.appendChild(saveBtn);
+        } else {
+            // For other mobile devices, just open in new tab
+            link.click();
         }
+    } else {
+        // For desktop browsers
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
-    
-    // For desktop browsers or as a fallback
-    document.body.appendChild(link);
-    link.click();
-    
-    // Clean up
-    setTimeout(() => {
-        if (document.body.contains(link)) {
-            document.body.removeChild(link);
-        }
-    }, 100);
 }
 
 // Download functions
@@ -644,35 +597,6 @@ function downloadQRAsPDF() {
         return;
     }
 
-    // Show loading indicator
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.style.position = 'fixed';
-    loadingIndicator.style.top = '0';
-    loadingIndicator.style.left = '0';
-    loadingIndicator.style.width = '100%';
-    loadingIndicator.style.height = '100%';
-    loadingIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    loadingIndicator.style.display = 'flex';
-    loadingIndicator.style.justifyContent = 'center';
-    loadingIndicator.style.alignItems = 'center';
-    loadingIndicator.style.zIndex = '9999';
-    loadingIndicator.innerHTML = `
-        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center;">
-            <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 15px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="margin: 0; font-weight: bold;">Generating PDF...</p>
-            <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Please wait a moment</p>
-        </div>
-        <style>
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        </style>
-    `;
-    document.body.appendChild(loadingIndicator);
-    
-    // Use setTimeout to ensure the UI updates before heavy processing
-    setTimeout(() => {
     try {
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF();
@@ -714,34 +638,73 @@ function downloadQRAsPDF() {
         const imgData = canvas.toDataURL('image/png');
         pdf.addImage(imgData, 'PNG', x, y, qrSizeMm, qrSizeMm);
 
-        // Generate PDF blob
-        const pdfBlob = pdf.output('blob');
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Remove loading indicator
-        if (document.body.contains(loadingIndicator)) {
-            document.body.removeChild(loadingIndicator);
-        }
+        // Generate PDF data URL
+        const pdfDataUrl = pdf.output('datauristring');
         
         // Use our download helper function
-        downloadFile(pdfUrl, 'qr-code.pdf');
-        
-        // Clean up the object URL after a delay
-        setTimeout(() => {
-            URL.revokeObjectURL(pdfUrl);
-        }, 1000);
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // For mobile, open in new tab
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>QR Code PDF</title>
+                        <style>
+                            body { 
+                                margin: 0; 
+                                padding: 20px; 
+                                font-family: Arial, sans-serif;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                min-height: 100vh;
+                                background: #f5f5f5;
+                            }
+                            iframe {
+                                width: 100%;
+                                height: 80vh;
+                                border: 1px solid #ddd;
+                                background: white;
+                                margin-bottom: 20px;
+                            }
+                            button {
+                                padding: 12px 24px;
+                                background: #007AFF;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                font-size: 16px;
+                                cursor: pointer;
+                                margin: 5px;
+                            }
+                            .button-group {
+                                display: flex;
+                                gap: 10px;
+                                flex-wrap: wrap;
+                                justify-content: center;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>QR Code PDF</h2>
+                        <iframe id="pdfViewer" src="${pdfDataUrl}"></iframe>
+                        <div class="button-group">
+                            <button onclick="window.open('${pdfDataUrl}')">Open PDF</button>
+                            <button onclick="window.location.href='${pdfDataUrl}'">Download PDF</button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            newWindow.document.close();
+        } else {
+            // For desktop, use normal download
+            pdf.save('qr-code.pdf');
+        }
     } catch (error) {
         console.error('Error generating PDF:', error);
-        
-        // Remove loading indicator if it exists
-        if (loadingIndicator && document.body.contains(loadingIndicator)) {
-            document.body.removeChild(loadingIndicator);
-        }
-        
-        // Show error message
         alert('Error generating PDF. Please try again.');
     }
-    }, 100);
 }
 
 // Initialize size slider functionality
