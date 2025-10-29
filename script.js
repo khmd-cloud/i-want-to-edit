@@ -456,6 +456,47 @@ function generateQRCode() {
     document.getElementById('size-value').textContent = size;
 }
 
+// Helper function to handle file download for both mobile and desktop
+function downloadFile(dataUrl, fileName) {
+    // For mobile devices
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Create a temporary link element
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.target = '_blank';
+        
+        // For iOS devices, we need to open the image in a new tab
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+            // Create a new window with the image
+            const newWindow = window.open();
+            newWindow.document.write(`<img src="${dataUrl}" alt="QR Code" style="max-width:100%;">`);
+            newWindow.document.title = 'QR Code';
+            newWindow.document.close();
+            
+            // Show save button for iOS
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save Image';
+            saveBtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 20px;background:#007AFF;color:white;border:none;border-radius:5px;font-size:16px;';
+            saveBtn.onclick = function() {
+                // This will prompt the user to save the image
+                window.open(dataUrl, '_blank');
+            };
+            newWindow.document.body.appendChild(saveBtn);
+        } else {
+            // For other mobile devices, just open in new tab
+            link.click();
+        }
+    } else {
+        // For desktop browsers
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
 // Download functions
 function downloadQRAsPNG() {
     const qrContainer = document.getElementById('qr-code-container');
@@ -481,7 +522,6 @@ function downloadQRAsPNG() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Calculate position to center the QR code on the page
-    // Convert pixels to match the proportion
     const qrSize = size;
     const x = (pageWidth - qrSize) / 2;
     const y = (pageHeight - qrSize) / 2;
@@ -497,11 +537,11 @@ function downloadQRAsPNG() {
         }
     }
 
-    // Download as PNG
-    const link = document.createElement('a');
-    link.download = 'qr-code.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    // Get the data URL of the canvas
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    // Download the file using our helper function
+    downloadFile(dataUrl, 'qr-code.png');
 }
 
 function downloadQRAsJPG() {
@@ -543,11 +583,11 @@ function downloadQRAsJPG() {
         }
     }
 
-    // Download as JPG
-    const link = document.createElement('a');
-    link.download = 'qr-code.jpg';
-    link.href = canvas.toDataURL('image/jpeg', 0.9);
-    link.click();
+    // Get the data URL of the canvas
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    
+    // Download the file using our helper function
+    downloadFile(dataUrl, 'qr-code.jpg');
 }
 
 function downloadQRAsPDF() {
@@ -557,48 +597,114 @@ function downloadQRAsPDF() {
         return;
     }
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    const size = parseInt(document.getElementById('qr-size').value);
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+        const size = parseInt(document.getElementById('qr-size').value);
 
-    // Create canvas for QR code with exact size needed
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+        // Create canvas for QR code with exact size needed
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-    canvas.width = size;
-    canvas.height = size;
+        canvas.width = size;
+        canvas.height = size;
 
-    // Fill background with white
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Fill background with white
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw QR code onto canvas at original size
-    const qrImg = qrContainer.querySelector('img');
-    if (qrImg) {
-        ctx.drawImage(qrImg, 0, 0, size, size);
-    } else {
-        const qrCanvas = qrContainer.querySelector('canvas');
-        if (qrCanvas) {
-            ctx.drawImage(qrCanvas, 0, 0, size, size);
+        // Draw QR code onto canvas at original size
+        const qrImg = qrContainer.querySelector('img');
+        if (qrImg) {
+            ctx.drawImage(qrImg, 0, 0, size, size);
+        } else {
+            const qrCanvas = qrContainer.querySelector('canvas');
+            if (qrCanvas) {
+                ctx.drawImage(qrCanvas, 0, 0, size, size);
+            }
         }
+
+        // Use standard A4 page size (210mm x 297mm)
+        const pageWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+
+        // Calculate position to center the QR code on the page
+        // Convert pixels to mm (assuming 96 DPI, 1px = 0.264mm)
+        const qrSizeMm = (size * 0.264);
+        const x = (pageWidth - qrSizeMm) / 2;
+        const y = (pageHeight - qrSizeMm) / 2;
+
+        // Add QR code to PDF at center position with original size
+        const imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', x, y, qrSizeMm, qrSizeMm);
+
+        // Generate PDF data URL
+        const pdfDataUrl = pdf.output('datauristring');
+        
+        // Use our download helper function
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // For mobile, open in new tab
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <html>
+                    <head>
+                        <title>QR Code PDF</title>
+                        <style>
+                            body { 
+                                margin: 0; 
+                                padding: 20px; 
+                                font-family: Arial, sans-serif;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                min-height: 100vh;
+                                background: #f5f5f5;
+                            }
+                            iframe {
+                                width: 100%;
+                                height: 80vh;
+                                border: 1px solid #ddd;
+                                background: white;
+                                margin-bottom: 20px;
+                            }
+                            button {
+                                padding: 12px 24px;
+                                background: #007AFF;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                font-size: 16px;
+                                cursor: pointer;
+                                margin: 5px;
+                            }
+                            .button-group {
+                                display: flex;
+                                gap: 10px;
+                                flex-wrap: wrap;
+                                justify-content: center;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>QR Code PDF</h2>
+                        <iframe id="pdfViewer" src="${pdfDataUrl}"></iframe>
+                        <div class="button-group">
+                            <button onclick="window.open('${pdfDataUrl}')">Open PDF</button>
+                            <button onclick="window.location.href='${pdfDataUrl}'">Download PDF</button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            newWindow.document.close();
+        } else {
+            // For desktop, use normal download
+            pdf.save('qr-code.pdf');
+        }
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF. Please try again.');
     }
-
-    // Use standard A4 page size (210mm x 297mm)
-    const pageWidth = 210; // A4 width in mm
-    const pageHeight = 297; // A4 height in mm
-
-    // Calculate position to center the QR code on the page
-    // Convert pixels to mm (assuming 96 DPI, 1px = 0.264mm)
-    const qrSizeMm = (size * 0.264);
-    const x = (pageWidth - qrSizeMm) / 2;
-    const y = (pageHeight - qrSizeMm) / 2;
-
-    // Add QR code to PDF at center position with original size
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', x, y, qrSizeMm, qrSizeMm);
-
-    // Download PDF without any text
-    pdf.save('qr-code.pdf');
 }
 
 // Initialize size slider functionality
